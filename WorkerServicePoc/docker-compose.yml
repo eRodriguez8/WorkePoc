@@ -1,0 +1,49 @@
+version: '3.4'
+
+services:
+  workerservicepoc:
+    image: ${DOCKER_REGISTRY-}workerservicepoc
+    container_name: workerservicepoc
+    build:
+      context: .
+      dockerfile: WorkerServicePoc/Dockerfile
+  workerservicepoc.api:
+    image: ${DOCKER_REGISTRY-}workerservicepocapi
+    container_name: workerservicepoc.api
+    build:
+      context: .
+      dockerfile: ./WorkerServicePoc.Api/Dockerfile
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    environment:
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=emaAsus8.-
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+    volumes:
+      - ~/.aspnet/https:/https:ro
+    depends_on:
+      - "workerservicepoc.database"
+  workerservicepoc.database:
+    image: postgres:latest
+    container_name: workerservicepoc.database
+    environment:
+      - POSTGRES_DB=workerservice
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - ./.containers/workerservice-db:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+  workerservicepoc.mq:
+    image: rabbitmq:latest
+    container_name: workerservicepoc.queue
+    hostname: workerservicepoc.queue
+    ports:
+      - "5672:5672"
+      - "15672:15672" 
+    volumes:
+      - ./.containers/queue/data/:/var/lib/rabbitmq
+      - ./.containers/queue/log/:/var/lib/rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
